@@ -1,0 +1,57 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using Supplier.Core.Persistence
+
+@page "/settings"
+@rendermode InteractiveServer
+
+@inject AppDbContext dbContext
+
+<h3>Configuración</h3>
+
+@if(settingsModel is null)
+{
+    <div>Cargando...</div>
+}
+else
+{
+    <EditForm Model="settingsModel" OnSubmit="@UpsertSettings">
+        <div class="mb-3">
+            <label for="margen" class="form-label form-label">Margen en %</label>
+            <InputNumber id="margen" class="form-control" @bind-Value="settingsModel.Markup" />
+        </div>
+        <div class="mb-3">
+            <label for="apiUrl" class="form-label form-label">Url del proveedor</label>
+            <InputText id="apiUrl" class="form-control" @bind-Value="settingsModel.ApiUrl" />
+        </div>
+        <div class="mb-3">
+            <label for="exportPath" class="form-label form-label">Ruta de exportación</label>
+            <InputText id="exportPath" class="form-control" @bind-Value="settingsModel.ExportPath" />
+        </div>
+        <input type="submit" value="Guardar cambios" class="btn btn-primary" />
+    </EditForm>
+}
+
+
+@code {
+    private SettingsModel settingsModel = null;
+    private CancellationTokenSource cancellationTokenSource = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        settingsModel = await dbContext.Settings.FirstOrDefaultAsync(cancellationTokenSource.Token) ?? new();
+    }
+
+    private async Task UpsertSettings(EditContext args)
+    {
+        if (settingsModel.Id == 0)
+        {
+            dbContext.Settings.Add(settingsModel);
+        }
+        else
+        {
+            dbContext.Settings.Update(settingsModel);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationTokenSource.Token);
+    }
+}

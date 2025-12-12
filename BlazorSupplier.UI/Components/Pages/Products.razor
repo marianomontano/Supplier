@@ -1,0 +1,139 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using Supplier.Core.Models
+@using Supplier.Core.Services
+@using Supplier.Core.Persistence
+
+@page "/products"
+
+@rendermode InteractiveServer
+@inject IProductService productService
+@inject AppDbContext dbContext
+
+<h3>Productos</h3>
+
+@if (products is not null)
+{
+    <div class="mb-3">
+        <EditForm Model="Search" OnSubmit="HandleSearch" FormName="searchForm">
+            <div class="mb-3">
+                <InputText id="search" class="form-control" @bind-Value="Search.Filter" />
+            </div>
+            <input type="submit" name="filter" value="Buscar" class="btn btn-primary me-2" />
+            <button type="button" class="btn btn-secondary" @onclick="ResetFilter">
+                Reiniciar
+            </button>
+        </EditForm>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Imagen</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Costo</th>
+                <th>Público</th>
+                <th>Categoría</th>
+                <th>Stock</th>
+                <th>Está activo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td>
+                        <img height="100"
+                             src="@product.ImageUrl"
+                             alt="@product.Name" />
+                    </td>
+                    <td>@product.Code</td>
+                    <td>@product.Name</td>
+                    <td>@product.Cost.ToString("C")</td>
+                    <td>@product.Public.ToString("C")</td>
+                    <td>@product.Provider</td>
+                    <td>@product.Stock</td>
+                    <td>@(product.IsActive ? "Sí" : "No")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Cargando productos...</p>
+}
+
+@code {
+    List<Product> products;
+    List<ProductModel> productModels = [];
+    SettingsModel settings;
+    CancellationTokenSource cancellationTokenSource = new();
+    private SearchModel Search { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        productModels = (await productService.GetProducts(cancellationTokenSource.Token)).ToList();
+        settings = await dbContext.Settings.FirstOrDefaultAsync(cancellationTokenSource.Token);
+
+        products = productModels.Select(p => Product.FromProductModel(p, settings.Markup))
+            .ToList();
+    }
+
+    private void ResetFilter()
+    {
+        Search.Filter = string.Empty;
+        products = productModels.Select(x => Product.FromProductModel(x, settings.Markup)).ToList();
+    }
+
+    private void HandleSearch(EditContext args)
+    {
+        var filter = Search.Filter?.Trim() ?? string.Empty;
+
+        products = productModels
+            .Where(x =>
+                string.IsNullOrEmpty(filter) ||
+                (x.Search?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                string.Equals(x.Code, filter, StringComparison.OrdinalIgnoreCase))
+            .Select(x => Product.FromProductModel(x, settings.Markup))
+            .ToList();
+    }
+
+    private class SearchModel
+    {
+        public string Filter { get; set; } = string.Empty;
+    }
+
+    private class Product
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public decimal Cost { get; set; }
+        public decimal Public { get; set; }
+        public string Provider { get; set; }
+        public int Stock { get; set; }
+        public bool IsActive { get; set; }
+        public string ImageUrl { get; set; }
+
+        public static Product FromProductModel(ProductModel p, int markup)
+        {
+            var salePrice = p?.SalePrice ?? 0m;
+            var normalizedMarkup = Math.Clamp(markup, 0, 99);
+            var publicPrice = normalizedMarkup == 0
+                ? salePrice
+                : (100m * salePrice) / (100m - normalizedMarkup);
+
+            return new Product
+            {
+                Code = p?.Code ?? string.Empty,
+                Name = p?.Name ?? string.Empty,
+                Cost = salePrice,
+                Public = Math.Round(publicPrice, 2),
+                Provider = p?.Category?.Name ?? string.Empty,
+                Stock = p?.Stock?.Current ?? 0,
+                IsActive = p?.Active ?? false,
+                ImageUrl = "https://images-cdn.kyte.site/v0/b/kyte-7c484.appspot.com/o" + p.ImageThumb
+            };
+        }
+    }
+}
