@@ -13,6 +13,8 @@ public static class ConfigurationExtensions
             options.UseSqlite("Data Source=settings.db"));
 
         services.AddScoped<IProductService, ProductService>();
+        services.AddSingleton<ICacheService, CacheService>();
+        services.AddScoped<IExportService, ExportService>();
 
         return services;
     }

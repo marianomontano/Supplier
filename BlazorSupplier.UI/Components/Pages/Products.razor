@@ -6,8 +6,7 @@
 @page "/products"
 
 @rendermode InteractiveServer
-@inject IProductService productService
-@inject AppDbContext dbContext
+@inject ICacheService cacheService
 
 <h3>Productos</h3>
 
@@ -19,9 +18,17 @@
                 <InputText id="search" class="form-control" @bind-Value="Search.Filter" />
             </div>
             <input type="submit" name="filter" value="Buscar" class="btn btn-primary me-2" />
-            <button type="button" class="btn btn-secondary" @onclick="ResetFilter">
-                Reiniciar
-            </button>
+            <button type="button" class="btn btn-secondary me-2" @onclick="ResetFilter">Reiniciar</button>
+            <a class="btn btn-success me-2"
+               href="@ExportExcelUrl"
+               target="_blank">
+                Exportar a Excel
+            </a>
+            <a class="btn btn-success"
+               href="@ExportPDFUrl"
+               target="_blank">
+                Exportar a PDF
+            </a>
         </EditForm>
     </div>
 
@@ -62,25 +69,23 @@ else
 }
 
 @code {
-    List<Product> products;
-    List<ProductModel> productModels = [];
-    SettingsModel settings;
+    List<ProductDto> products;
+    List<ProductDto> productModels = [];
     CancellationTokenSource cancellationTokenSource = new();
     private SearchModel Search { get; set; } = new();
+    private string ExportExcelUrl = "/api/export/excel";
+    private string ExportPDFUrl = "/api/export/pdf";
 
     protected override async Task OnInitializedAsync()
     {
-        productModels = (await productService.GetProducts(cancellationTokenSource.Token)).ToList();
-        settings = await dbContext.Settings.FirstOrDefaultAsync(cancellationTokenSource.Token);
-
-        products = productModels.Select(p => Product.FromProductModel(p, settings.Markup))
-            .ToList();
+        productModels = await cacheService.GetOrSetProducts(cancellationTokenSource.Token);
+        products = productModels.ToList();
     }
 
     private void ResetFilter()
     {
         Search.Filter = string.Empty;
-        products = productModels.Select(x => Product.FromProductModel(x, settings.Markup)).ToList();
+        products = productModels.ToList();
     }
 
     private void HandleSearch(EditContext args)
@@ -90,47 +95,13 @@ else
         products = productModels
             .Where(x =>
                 string.IsNullOrEmpty(filter) ||
-                (x.Search?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Name?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 string.Equals(x.Code, filter, StringComparison.OrdinalIgnoreCase))
-            .Select(x => Product.FromProductModel(x, settings.Markup))
             .ToList();
     }
 
     private class SearchModel
     {
         public string Filter { get; set; } = string.Empty;
-    }
-
-    private class Product
-    {
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public decimal Cost { get; set; }
-        public decimal Public { get; set; }
-        public string Provider { get; set; }
-        public int Stock { get; set; }
-        public bool IsActive { get; set; }
-        public string ImageUrl { get; set; }
-
-        public static Product FromProductModel(ProductModel p, int markup)
-        {
-            var salePrice = p?.SalePrice ?? 0m;
-            var normalizedMarkup = Math.Clamp(markup, 0, 99);
-            var publicPrice = normalizedMarkup == 0
-                ? salePrice
-                : (100m * salePrice) / (100m - normalizedMarkup);
-
-            return new Product
-            {
-                Code = p?.Code ?? string.Empty,
-                Name = p?.Name ?? string.Empty,
-                Cost = salePrice,
-                Public = Math.Round(publicPrice, 2),
-                Provider = p?.Category?.Name ?? string.Empty,
-                Stock = p?.Stock?.Current ?? 0,
-                IsActive = p?.Active ?? false,
-                ImageUrl = "https://images-cdn.kyte.site/v0/b/kyte-7c484.appspot.com/o" + p.ImageThumb
-            };
-        }
     }
 }

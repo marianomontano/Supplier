@@ -19,7 +19,7 @@ public class ProductService : IProductService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<ProductModel>> GetProducts(CancellationToken cancellationToken)
+    public async Task<IEnumerable<ProductDto>> GetProducts(CancellationToken cancellationToken)
     {
         try
         {
@@ -34,7 +34,7 @@ public class ProductService : IProductService
                 settings.ApiUrl + "?limit=1000",
                 cancellationToken);
 
-            return results?.Products;
+            return results?.Products.Select(x => ProductDto.FromProductModel(x, settings.Markup));
         }
         catch (Exception ex)
         {

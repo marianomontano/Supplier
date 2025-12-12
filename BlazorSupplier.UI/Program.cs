@@ -10,6 +10,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpClient();
 builder.Services.AddCoreConfiguration();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -22,7 +23,10 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
 app.UseAntiforgery();
+app.MapControllers();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

@@ -1,10 +1,12 @@
 ﻿@using Microsoft.EntityFrameworkCore
 @using Supplier.Core.Persistence
+@using Supplier.Core.Services
 
 @page "/settings"
 @rendermode InteractiveServer
 
 @inject AppDbContext dbContext
+@inject ICacheService cacheService
 
 <h3>Configuración</h3>
 
@@ -53,5 +55,6 @@ else
         }
 
         await dbContext.SaveChangesAsync(cancellationTokenSource.Token);
+        cacheService.ClearCache();
     }
 }

@@ -4,5 +4,5 @@ namespace Supplier.Core.Services;
 
 public interface IProductService
 {
-    Task<IEnumerable<ProductModel>> GetProducts(CancellationToken cancellationToken);
+    Task<IEnumerable<ProductDto>> GetProducts(CancellationToken cancellationToken);
 }
