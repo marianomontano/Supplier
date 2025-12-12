@@ -1,0 +1,60 @@
+﻿@typeparam TItem
+
+<div>
+    @if (PagedItems is not null)
+    {
+        <table class="table">
+            <thead>
+                @ChildContentHeader
+            </thead>
+            <tbody>
+                @foreach (var item in PagedItems)
+                {
+                    @ChildContentRow(item)
+                }
+            </tbody>
+        </table>
+    }
+
+    <div class="d-flex justify-content-between mt-3">
+        <button class="btn btn-secondary"
+                @onclick="PreviousPage"
+                disabled="@(_pageIndex == 0)">
+            ◀ Anterior
+        </button>
+
+        <span>Página @(_pageIndex + 1) de @TotalPages</span>
+
+        <button class="btn btn-secondary"
+                @onclick="NextPage"
+                disabled="@(_pageIndex + 1 == TotalPages)">
+            Siguiente ▶
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<TItem> Items { get; set; }
+    [Parameter] public int PageSize { get; set; } = 25;
+    [Parameter] public RenderFragment ChildContentHeader { get; set; }
+    [Parameter] public RenderFragment<TItem> ChildContentRow { get; set; }
+
+    private int _pageIndex = 0;
+    private IEnumerable<TItem> PagedItems =>
+        Items?.Skip(_pageIndex * PageSize).Take(PageSize) ?? [];
+
+    private int TotalPages =>
+        Items is null ? 0 : (int)Math.Ceiling(Items.Count / (double)PageSize);
+
+    private void PreviousPage()
+    {
+        if (_pageIndex > 0)
+            _pageIndex--;
+    }
+
+    private void NextPage()
+    {
+        if (_pageIndex + 1 < TotalPages)
+            _pageIndex++;
+    }
+}

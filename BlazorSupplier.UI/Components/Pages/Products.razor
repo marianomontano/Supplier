@@ -25,8 +25,8 @@
         </EditForm>
     </div>
 
-    <table class="table">
-        <thead>
+    <Pagination Items="products" PageSize="10">
+        <ChildContentHeader>
             <tr>
                 <th>Imagen</th>
                 <th>Código</th>
@@ -35,29 +35,26 @@
                 <th>Público</th>
                 <th>Categoría</th>
                 <th>Stock</th>
-                <th>Está activo</th>
+                <th>Activo</th>
             </tr>
-        </thead>
-        <tbody>
-            @foreach (var product in products)
-            {
-                <tr>
-                    <td>
-                        <img height="100"
-                             src="@product.ImageUrl"
-                             alt="@product.Name" />
-                    </td>
-                    <td>@product.Code</td>
-                    <td>@product.Name</td>
-                    <td>@product.Cost.ToString("C")</td>
-                    <td>@product.Public.ToString("C")</td>
-                    <td>@product.Provider</td>
-                    <td>@product.Stock</td>
-                    <td>@(product.IsActive ? "Sí" : "No")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+        </ChildContentHeader>
+
+        <ChildContentRow Context="product">
+            <tr>
+                <td>
+                    <img height="100" src="@product.ImageUrl" alt="@product.Name" />
+                </td>
+                <td>@product.Code</td>
+                <td>@product.Name</td>
+                <td>@product.Cost.ToString("C")</td>
+                <td>@product.Public.ToString("C")</td>
+                <td>@product.Provider</td>
+                <td>@product.Stock</td>
+                <td>@(product.IsActive ? "Sí" : "No")</td>
+            </tr>
+        </ChildContentRow>
+    </Pagination>
+
 }
 else
 {
