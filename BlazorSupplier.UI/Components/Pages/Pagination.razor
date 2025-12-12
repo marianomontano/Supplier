@@ -1,11 +1,14 @@
 ﻿@typeparam TItem
 
 <div>
-    @if (PagedItems is not null)
+    @if (PagedItems is not null && PagedItems.Any())
     {
         <table class="table">
             <thead>
-                @ChildContentHeader
+                @if (ChildContentHeader is not null)
+                {
+                    @ChildContentHeader
+                }
             </thead>
             <tbody>
                 @foreach (var item in PagedItems)
@@ -15,46 +18,71 @@
             </tbody>
         </table>
     }
+    else
+    {
+        <div class="text-muted">No items to display</div>
+    }
 
-    <div class="d-flex justify-content-between mt-3">
-        <button class="btn btn-secondary"
-                @onclick="PreviousPage"
-                disabled="@(_pageIndex == 0)">
-            ◀ Anterior
-        </button>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            <button class="btn btn-sm btn-secondary me-1" @onclick="FirstPage" disabled="@(_pageIndex == 0)">«</button>
+            <button class="btn btn-sm btn-secondary me-2" @onclick="PreviousPage" disabled="@(_pageIndex == 0)">‹ Anterior</button>
+            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(_pageIndex + 1 >= TotalPages)">Siguiente ›</button>
+            <button class="btn btn-sm btn-secondary ms-1" @onclick="LastPage" disabled="@(_pageIndex + 1 >= TotalPages)">»</button>
+        </div>
 
-        <span>Página @(_pageIndex + 1) de @TotalPages</span>
-
-        <button class="btn btn-secondary"
-                @onclick="NextPage"
-                disabled="@(_pageIndex + 1 == TotalPages)">
-            Siguiente ▶
-        </button>
+        <div>
+            Página @(_pageIndex + 1) de @TotalPages
+        </div>
     </div>
 </div>
 
 @code {
-    [Parameter] public IReadOnlyList<TItem> Items { get; set; }
+    [Parameter] public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
     [Parameter] public int PageSize { get; set; } = 25;
     [Parameter] public RenderFragment ChildContentHeader { get; set; }
     [Parameter] public RenderFragment<TItem> ChildContentRow { get; set; }
 
+    [Parameter] public bool AutoResetOnItemsChanged { get; set; } = false;
+
     private int _pageIndex = 0;
+
+    private int TotalPages => Items is null || Items.Count == 0
+        ? 1
+        : (int)Math.Ceiling(Items.Count / (double)PageSize);
+
     private IEnumerable<TItem> PagedItems =>
-        Items?.Skip(_pageIndex * PageSize).Take(PageSize) ?? [];
+        Items?.Skip(_pageIndex * PageSize).Take(PageSize) ?? Enumerable.Empty<TItem>();
 
-    private int TotalPages =>
-        Items is null ? 0 : (int)Math.Ceiling(Items.Count / (double)PageSize);
-
-    private void PreviousPage()
+    protected override void OnParametersSet()
     {
-        if (_pageIndex > 0)
-            _pageIndex--;
+        // If Items changed size, ensure _pageIndex is valid.
+        if (AutoResetOnItemsChanged)
+        {
+            // Reset to first page whenever items change
+            _pageIndex = 0;
+        }
+        else
+        {
+            // Clamp to last page if current page is out of range
+            var lastValidIndex = Math.Max(0, TotalPages - 1);
+            if (_pageIndex > lastValidIndex)
+            {
+                _pageIndex = lastValidIndex;
+            }
+        }
     }
 
-    private void NextPage()
+    public void GoToPage(int pageIndex)
     {
-        if (_pageIndex + 1 < TotalPages)
-            _pageIndex++;
+        if (pageIndex < 0) pageIndex = 0;
+        var last = Math.Max(0, TotalPages - 1);
+        if (pageIndex > last) pageIndex = last;
+        _pageIndex = pageIndex;
     }
+
+    private void FirstPage() => GoToPage(0);
+    private void PreviousPage() => GoToPage(_pageIndex - 1);
+    private void NextPage() => GoToPage(_pageIndex + 1);
+    private void LastPage() => GoToPage(TotalPages - 1);
 }
