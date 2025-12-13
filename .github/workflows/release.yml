@@ -1,0 +1,43 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Build & Release (Portable)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Publish (self-contained)
+      run: >
+        dotnet publish
+        -c Release
+        -r win-x64
+        --self-contained true
+        -p:PublishSingleFile=false
+        -o publish
+
+    - name: Zip portable build
+      run: |
+        powershell Compress-Archive publish SupplierApp-${{ github.ref_name }}-portable-win-x64.zip
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: SupplierApp-${{ github.ref_name }}-portable-win-x64.zip
