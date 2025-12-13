@@ -25,10 +25,6 @@ else
             <label for="apiUrl" class="form-label form-label">Url del proveedor</label>
             <InputText id="apiUrl" class="form-control" @bind-Value="settingsModel.ApiUrl" />
         </div>
-        <div class="mb-3">
-            <label for="exportPath" class="form-label form-label">Ruta de exportación</label>
-            <InputText id="exportPath" class="form-control" @bind-Value="settingsModel.ExportPath" />
-        </div>
         <input type="submit" value="Guardar cambios" class="btn btn-primary" />
     </EditForm>
 }

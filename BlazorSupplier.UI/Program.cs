@@ -1,4 +1,5 @@
 using BlazorSupplier.UI.Components;
+using Microsoft.EntityFrameworkCore;
 using Supplier.Core.Configuration;
 using Supplier.Core.Persistence;
 
@@ -35,7 +36,8 @@ app.MapRazorComponents<App>()
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    //db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.Run();
